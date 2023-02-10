@@ -7,8 +7,8 @@ from utils.shortcuts import DRAMATIQ_WORKER_ARGS
 
 
 @dramatiq.actor(**DRAMATIQ_WORKER_ARGS())
-def judge_task(submission_id, problem_id):
+def judge_task(submission_id, problem_id, extra=False):
     uid = Submission.objects.get(id=submission_id).user_id
     if User.objects.get(id=uid).is_disabled:
         return
-    JudgeDispatcher(submission_id, problem_id).judge()
+    JudgeDispatcher(submission_id, problem_id, extra).judge()

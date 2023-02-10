@@ -89,11 +89,12 @@ class SPJCompiler(DispatcherBase):
 
 
 class JudgeDispatcher(DispatcherBase):
-    def __init__(self, submission_id, problem_id):
+    def __init__(self, submission_id, problem_id, extra=False):
         super().__init__()
         self.submission = Submission.objects.get(id=submission_id)
         self.contest_id = self.submission.contest_id
         self.last_result = self.submission.result if self.submission.info else None
+        self.extra = extra
 
         if self.contest_id:
             self.problem = Problem.objects.select_related("contest").get(id=problem_id, contest_id=self.contest_id)
@@ -137,52 +138,67 @@ class JudgeDispatcher(DispatcherBase):
             code = f"{template['prepend']}\n{self.submission.code}\n{template['append']}"
         else:
             code = self.submission.code
+        if not self.extra:
+            data = {
+                "language_config": sub_config["config"],
+                "src": code,
+                "max_cpu_time": self.problem.time_limit,
+                "max_memory": 1024 * 1024 * self.problem.memory_limit,
+                "test_case_id": self.problem.test_case_id,
+                "output": False,
+                "spj_version": self.problem.spj_version,
+                "spj_config": spj_config.get("config"),
+                "spj_compile_config": spj_config.get("compile"),
+                "spj_src": self.problem.spj_code,
+                "io_mode": self.problem.io_mode
+            }
 
-        data = {
-            "language_config": sub_config["config"],
-            "src": code,
-            "max_cpu_time": self.problem.time_limit,
-            "max_memory": 1024 * 1024 * self.problem.memory_limit,
-            "test_case_id": self.problem.test_case_id,
-            "output": False,
-            "spj_version": self.problem.spj_version,
-            "spj_config": spj_config.get("config"),
-            "spj_compile_config": spj_config.get("compile"),
-            "spj_src": self.problem.spj_code,
-            "io_mode": self.problem.io_mode
-        }
+            with ChooseJudgeServer() as server:
+                if not server:
+                    data = {"submission_id": self.submission.id, "problem_id": self.problem.id}
+                    cache.lpush(CacheKey.waiting_queue, json.dumps(data))
+                    return
+                Submission.objects.filter(id=self.submission.id).update(result=JudgeStatus.JUDGING)
+                resp = self._request(urljoin(server.service_url, "/judge"), data=data)
 
-        with ChooseJudgeServer() as server:
-            if not server:
-                data = {"submission_id": self.submission.id, "problem_id": self.problem.id}
-                cache.lpush(CacheKey.waiting_queue, json.dumps(data))
+            if not resp:
+                Submission.objects.filter(id=self.submission.id).update(result=JudgeStatus.SYSTEM_ERROR)
                 return
-            Submission.objects.filter(id=self.submission.id).update(result=JudgeStatus.JUDGING)
-            resp = self._request(urljoin(server.service_url, "/judge"), data=data)
 
-        if not resp:
-            Submission.objects.filter(id=self.submission.id).update(result=JudgeStatus.SYSTEM_ERROR)
-            return
-
-        if resp["err"]:
-            self.submission.result = JudgeStatus.COMPILE_ERROR
-            self.submission.statistic_info["err_info"] = resp["data"]
-            self.submission.statistic_info["score"] = 0
-        else:
-            resp["data"].sort(key=lambda x: int(x["test_case"]))
-            self.submission.info = resp
-            self._compute_statistic_info(resp["data"])
-            error_test_case = list(filter(lambda case: case["result"] != 0, resp["data"]))
-            # ACM模式下,多个测试点全部正确则AC，否则取第一个错误的测试点的状态
-            # OI模式下, 若多个测试点全部正确则AC， 若全部错误则取第一个错误测试点状态，否则为部分正确
-            if not error_test_case:
-                self.submission.result = JudgeStatus.ACCEPTED
-            elif self.problem.rule_type == ProblemRuleType.ACM or len(error_test_case) == len(resp["data"]):
-                self.submission.result = error_test_case[0]["result"]
+            if resp["err"]:
+                self.submission.result = JudgeStatus.COMPILE_ERROR
+                self.submission.statistic_info["err_info"] = resp["data"]
+                self.submission.statistic_info["score"] = 0
             else:
-                self.submission.result = JudgeStatus.PARTIALLY_ACCEPTED
-        self.submission.save()
-
+                resp["data"].sort(key=lambda x: int(x["test_case"]))
+                self.submission.info = resp
+                self._compute_statistic_info(resp["data"])
+                error_test_case = list(filter(lambda case: case["result"] != 0, resp["data"]))
+                # ACM模式下,多个测试点全部正确则AC，否则取第一个错误的测试点的状态
+                # OI模式下, 若多个测试点全部正确则AC， 若全部错误则取第一个错误测试点状态，否则为部分正确
+                if not error_test_case:
+                    if self.submission.extra_config["enable"] == True:
+                        self.submission.result = JudgeStatus.EXTRAJUDGE
+                    else:
+                        self.submission.result = JudgeStatus.ACCEPTED
+                elif self.problem.rule_type == ProblemRuleType.ACM or len(error_test_case) == len(resp["data"]):
+                    self.submission.result = error_test_case[0]["result"]
+                else:
+                    self.submission.result = JudgeStatus.PARTIALLY_ACCEPTED
+            self.submission.save()  
+            
+        if self.submission.result == JudgeStatus.EXTRAJUDGE:
+            exdata = {
+                "src": code,
+                "config": self.problem.extra_config
+            }
+            with ChooseJudgeServer() as server:
+                if not server:
+                    data = {"submission_id": self.submission.id, "problem_id": self.problem.id, "extra": True}
+                    cache.lpush(CacheKey.waiting_queue, json.dumps(data))
+                    return
+                resp = self._request(urljoin(server.service_url, "/exjudge"), data=exdata)
+        
         if self.contest_id:
             if self.contest.status != ContestStatus.CONTEST_UNDERWAY or \
                     User.objects.get(id=self.submission.user_id).is_contest_admin(self.contest):

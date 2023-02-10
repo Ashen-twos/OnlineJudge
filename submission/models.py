@@ -20,6 +20,7 @@ class JudgeStatus:
     PENDING = 6
     JUDGING = 7
     PARTIALLY_ACCEPTED = 8
+    EXTRAJUDGE = 9
 
 
 class Submission(models.Model):
@@ -33,6 +34,8 @@ class Submission(models.Model):
     result = models.IntegerField(db_index=True, default=JudgeStatus.PENDING)
     # 从JudgeServer返回的判题详情
     info = JSONField(default=dict)
+    extra_info = JSONField(default=dict)
+    extra_option = models.BooleanField(default=True)
     language = models.TextField()
     shared = models.BooleanField(default=False)
     # 存储该提交所用时间和内存值，方便提交列表显示
