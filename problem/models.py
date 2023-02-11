@@ -82,6 +82,7 @@ class Problem(models.Model):
     statistic_info = JSONField(default=dict)
     share_submission = models.BooleanField(default=False)
     extra_config = JSONField(default=dict)
+    extra_score = JSONField(default=dict)
 
     class Meta:
         db_table = "problem"

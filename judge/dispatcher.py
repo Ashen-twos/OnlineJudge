@@ -103,24 +103,38 @@ class JudgeDispatcher(DispatcherBase):
 
     def _compute_statistic_info(self, resp_data):
         # 用时和内存占用保存为多个测试点中最长的那个
-        self.submission.statistic_info["time_cost"] = max([x["cpu_time"] for x in resp_data])
-        self.submission.statistic_info["memory_cost"] = max([x["memory"] for x in resp_data])
+        self.submission.statistic_info["time_cost"] = max([x["cpu_time"] for x in resp_data["base"]])
+        self.submission.statistic_info["memory_cost"] = max([x["memory"] for x in resp_data["base"]])
 
         # sum up the score in OI mode
-        if self.problem.rule_type == ProblemRuleType.OI:
-            score = 0
-            try:
-                for i in range(len(resp_data)):
-                    if resp_data[i]["result"] == JudgeStatus.ACCEPTED:
-                        resp_data[i]["score"] = self.problem.test_case_score[i]["score"]
-                        score += resp_data[i]["score"]
-                    else:
-                        resp_data[i]["score"] = 0
-            except IndexError:
-                logger.error(f"Index Error raised when summing up the score in problem {self.problem.id}")
-                self.submission.statistic_info["score"] = 0
-                return
-            self.submission.statistic_info["score"] = score
+        """ if self.problem.rule_type == ProblemRuleType.OI: """
+        score = 0
+        #基本分
+        try:
+            for i in range(len(resp_data["base"])):
+                if resp_data["base"][i]["result"] == JudgeStatus.ACCEPTED:
+                    resp_data["base"][i]["score"] = self.problem.test_case_score[i]["score"]
+                    score += resp_data["base"][i]["score"]
+                else:
+                    resp_data["base"][i]["score"] = 0
+        except IndexError:
+            logger.error(f"Index Error raised when summing up the score in problem {self.problem.id}")
+            self.submission.statistic_info["score"] = 0
+            return
+        #额外分
+        try:
+            for i in range(len(resp_data["extra"])):
+                if resp_data["extra"][i]["result"] == JudgeStatus.ACCEPTED:
+                    resp_data["extra"][i]["score"] = self.problem.extra_score[resp_data["extra"][i]["name"]]
+                    score += resp_data["extra"][i]["score"]
+                else:
+                    resp_data["extra"][i]["score"] = 0
+        except IndexError:
+            logger.error(f"Index Error raised when summing up the score in problem {self.problem.id}")
+            self.submission.statistic_info["score"] = 0
+            return
+        
+        self.submission.statistic_info["score"] = score
 
     def judge(self):
         language = self.submission.language
@@ -149,8 +163,9 @@ class JudgeDispatcher(DispatcherBase):
             "spj_compile_config": spj_config.get("compile"),
             "spj_src": self.problem.spj_code,
             "io_mode": self.problem.io_mode,
-            "extra_config":self.problem.extra_config
         }
+        if self.submission.extra_option:
+            data["extra_config"] = self.problem.extra_config
         with ChooseJudgeServer() as server:
             if not server:
                 data = {"submission_id": self.submission.id, "problem_id": self.problem.id}
@@ -170,7 +185,7 @@ class JudgeDispatcher(DispatcherBase):
         else:
             resp["data"]["base"].sort(key=lambda x: int(x["test_case"]))
             self.submission.info = resp
-            self._compute_statistic_info(resp["data"]["base"])
+            self._compute_statistic_info(resp["data"])
             error_test_case = list(filter(lambda case: case["result"] != 0, resp["data"]["base"]))
             # ACM模式下,多个测试点全部正确则AC，否则取第一个错误的测试点的状态
             # OI模式下, 若多个测试点全部正确则AC， 若全部错误则取第一个错误测试点状态，否则为部分正确

@@ -1,6 +1,5 @@
 import ipaddress
 
-from judge.dispatcher import JudgeDispatcher
 from account.decorators import login_required, check_contest_permission
 from contest.models import ContestStatus, ContestRuleType
 from judge.tasks import judge_task
@@ -82,7 +81,7 @@ class SubmissionAPI(APIView):
                                                contest_id=data.get("contest_id"),
                                                extra_option=data.get("extra_option"))
         # use this for debug
-        # JudgeDispatcher(submission.id, problem.id).judge()
+        #JudgeDispatcher(submission.id, problem.id).judge()
         judge_task.send(submission.id, problem.id)
         if hide_id:
             return self.success()
