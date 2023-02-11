@@ -1,9 +1,11 @@
 import ipaddress
 
+from judge.dispatcher import JudgeDispatcher
 from account.decorators import login_required, check_contest_permission
 from contest.models import ContestStatus, ContestRuleType
 from judge.tasks import judge_task
 from options.options import SysOptions
+from django.views.decorators.csrf import csrf_exempt
 # from judge.dispatcher import JudgeDispatcher
 from problem.models import Problem, ProblemRuleType
 from utils.api import APIView, validate_serializer
@@ -202,3 +204,49 @@ class SubmissionExistsAPI(APIView):
         return self.success(request.user.is_authenticated and
                             Submission.objects.filter(problem_id=request.GET["problem_id"],
                                                       user_id=request.user.id).exists())
+
+class SubmissionExternalAPI(APIView):
+    @validate_serializer(CreateSubmissionSerializer)
+    def post(self, request):
+        data = request.data
+        hide_id = False
+        if data.get("contest_id"):
+            error = self.check_contest_permission(request)
+            if error:
+                return error
+            contest = self.contest
+            if not contest.problem_details_permission(request.user):
+                hide_id = True
+
+        try:
+            problem = Problem.objects.get(id=data["problem_id"], contest_id=data.get("contest_id"), visible=True)
+        except Problem.DoesNotExist:
+            return self.error("Problem not exist")
+        if data["language"] not in problem.languages:
+            return self.error(f"{data['language']} is now allowed in the problem")
+        submission = Submission.objects.create(user_id=1,
+                                               username="root",
+                                               language=data["language"],
+                                               code=data["code"],
+                                               problem_id=problem.id,
+                                               contest_id=data.get("contest_id"),
+                                               extra_option=data.get("extra_option"))
+        # use this for debug
+        #JudgeDispatcher(submission.id, problem.id).judge()
+        judge_task.send(submission.id, problem.id)
+        if hide_id:
+            return self.success()
+        else:
+            return self.success({"submission_id": submission.id})
+    
+    def get(self, request):
+        submission_id = request.GET.get("id")
+        if not submission_id:
+            return self.error("Parameter id doesn't exist")
+        try:
+            submission = Submission.objects.select_related("problem").get(id=submission_id)
+        except Submission.DoesNotExist:
+            return self.error("Submission doesn't exist")
+
+        submission_data = SubmissionModelSerializer(submission).data
+        return self.success(submission_data)
