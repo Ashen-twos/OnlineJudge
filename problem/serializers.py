@@ -46,6 +46,11 @@ class ProblemIOModeSerializer(serializers.Serializer):
 
 class ProblemExtraConfigSerializer(serializers.Serializer):
     format = serializers.DictField()
+    function = serializers.DictField()
+    
+class ProblemExtraScoreSerializer(serializers.Serializer):
+    format = serializers.IntegerField(min_value=1, max_value=10)
+    function = serializers.IntegerField(min_value=1, max_value=10)
 
 
 class CreateOrEditProblemSerializer(serializers.Serializer):
@@ -74,6 +79,7 @@ class CreateOrEditProblemSerializer(serializers.Serializer):
     source = serializers.CharField(max_length=256, allow_blank=True, allow_null=True)
     share_submission = serializers.BooleanField()
     extra_config = ProblemExtraConfigSerializer()
+    extra_score = ProblemExtraScoreSerializer()
 
 
 class CreateProblemSerializer(CreateOrEditProblemSerializer):
