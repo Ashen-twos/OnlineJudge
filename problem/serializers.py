@@ -44,6 +44,9 @@ class ProblemIOModeSerializer(serializers.Serializer):
                 raise serializers.ValidationError("Invalid io file name format")
         return attrs
 
+class ProblemExtraConfigSerializer(serializers.Serializer):
+    format = serializers.DictField()
+
 
 class CreateOrEditProblemSerializer(serializers.Serializer):
     _id = serializers.CharField(max_length=32, allow_blank=True, allow_null=True)
@@ -70,6 +73,7 @@ class CreateOrEditProblemSerializer(serializers.Serializer):
     hint = serializers.CharField(allow_blank=True, allow_null=True)
     source = serializers.CharField(max_length=256, allow_blank=True, allow_null=True)
     share_submission = serializers.BooleanField()
+    extra_config = ProblemExtraConfigSerializer()
 
 
 class CreateProblemSerializer(CreateOrEditProblemSerializer):

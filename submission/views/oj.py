@@ -5,7 +5,7 @@ from contest.models import ContestStatus, ContestRuleType
 from judge.tasks import judge_task
 from options.options import SysOptions
 from django.views.decorators.csrf import csrf_exempt
-# from judge.dispatcher import JudgeDispatcher
+from judge.dispatcher import JudgeDispatcher
 from problem.models import Problem, ProblemRuleType
 from utils.api import APIView, validate_serializer
 from utils.cache import cache
@@ -231,7 +231,7 @@ class SubmissionExternalAPI(APIView):
                                                contest_id=data.get("contest_id"),
                                                extra_option=data.get("extra_option"))
         # use this for debug
-        #JudgeDispatcher(submission.id, problem.id).judge()
+        # JudgeDispatcher(submission.id, problem.id).judge()
         judge_task.send(submission.id, problem.id)
         if hide_id:
             return self.success()
