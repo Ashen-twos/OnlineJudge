@@ -72,16 +72,29 @@ class SubmissionAPI(APIView):
             return self.error("Problem not exist")
         if data["language"] not in problem.languages:
             return self.error(f"{data['language']} is now allowed in the problem")
-        submission = Submission.objects.create(user_id=request.user.id,
+        
+        if problem.test_mode == 1:
+            submission = Submission.objects.create(user_id=request.user.id,
                                                username=request.user.username,
-                                               language=data["language"],
-                                               code=data["code"],
+                                               language="C++",
+                                               code=problem.func_config["code_template"].format(code=data["code"]),
                                                problem_id=problem.id,
+                                               raw_code = data["code"],
                                                ip=request.session["ip"],
                                                contest_id=data.get("contest_id"),
                                                extra_option=data.get("extra_option"))
+        
+        else:
+            submission = Submission.objects.create(user_id=request.user.id,
+                                                username=request.user.username,
+                                                language=data["language"],
+                                                code=data["code"],
+                                                problem_id=problem.id,
+                                                ip=request.session["ip"],
+                                                contest_id=data.get("contest_id"),
+                                                extra_option=data.get("extra_option"))
         # use this for debug
-        #JudgeDispatcher(submission.id, problem.id).judge()
+        # JudgeDispatcher(submission.id, problem.id).judge()
         judge_task.send(submission.id, problem.id)
         if hide_id:
             return self.success()

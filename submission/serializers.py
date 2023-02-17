@@ -10,6 +10,7 @@ class CreateSubmissionSerializer(serializers.Serializer):
     contest_id = serializers.IntegerField(required=False)
     captcha = serializers.CharField(required=False)
     extra_option = serializers.BooleanField(required=True)
+    raw_code = serializers.CharField(required=False)
 
 
 class ShareSubmissionSerializer(serializers.Serializer):

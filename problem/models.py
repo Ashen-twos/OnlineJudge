@@ -84,6 +84,8 @@ class Problem(models.Model):
     extra = models.BooleanField(default=False)
     extra_config = JSONField(default=dict)
     extra_score = JSONField(default=dict)
+    test_mode = models.IntegerField(default=0)
+    func_config = JSONField(default=dict)
 
     class Meta:
         db_table = "problem"

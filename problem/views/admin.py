@@ -21,6 +21,7 @@ from utils.api import APIView, CSRFExemptAPIView, validate_serializer, APIError
 from utils.constants import Difficulty
 from utils.shortcuts import rand_str, natural_sort_key
 from utils.tasks import delete_files
+from utils.test import CreateFunctionTemplate, CreateCodeTemplate
 from ..models import Problem, ProblemRuleType, ProblemTag
 from ..serializers import (CreateContestProblemSerializer, CompileSPJSerializer,
                            CreateProblemSerializer, EditProblemSerializer, EditContestProblemSerializer,
@@ -201,7 +202,6 @@ class ProblemAPI(ProblemBase):
     @validate_serializer(CreateProblemSerializer)
     def post(self, request):
         data = request.data
-        print(data)
         _id = data["_id"]
         if not _id:
             return self.error("Display ID is required")
@@ -215,6 +215,20 @@ class ProblemAPI(ProblemBase):
         # todo check filename and score info
         tags = data.pop("tags")
         data["created_by"] = request.user
+        
+        # 函数模式
+        if data["test_mode"] == 1:
+            data["func_config"]["func_template"] = CreateFunctionTemplate(
+                name = data["func_config"]["name"],
+                return_type = data["func_config"]["return_type"],
+                parameter_list = data["func_config"]["parameter"]
+            )
+            data["func_config"]["code_template"] = CreateCodeTemplate(
+                init = data["func_config"]["init"],
+                name = data["func_config"]["name"],
+                return_type = data["func_config"]["return_type"],
+                parameter_list = data["func_config"]["parameter"]
+            )
         problem = Problem.objects.create(**data)
 
         for item in tags:

@@ -30,6 +30,7 @@ class Submission(models.Model):
     user_id = models.IntegerField(db_index=True)
     username = models.TextField()
     code = models.TextField()
+    raw_code = models.TextField(null=True)
     result = models.IntegerField(db_index=True, default=JudgeStatus.PENDING)
     # 从JudgeServer返回的判题详情
     info = JSONField(default=dict)

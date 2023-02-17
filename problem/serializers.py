@@ -52,6 +52,18 @@ class ProblemExtraScoreSerializer(serializers.Serializer):
     format = serializers.IntegerField(min_value=1, max_value=10)
     function = serializers.IntegerField(min_value=1, max_value=10)
 
+class ProblemFuncParameterSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    type = serializers.CharField()
+    ptr = serializers.BooleanField()
+    arr = serializers.BooleanField()
+
+class ProblemFuncConfigSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    return_type = serializers.CharField()
+    parameter = serializers.ListField(child=ProblemFuncParameterSerializer(), allow_empty=True)
+    init = serializers.CharField()
 
 class CreateOrEditProblemSerializer(serializers.Serializer):
     _id = serializers.CharField(max_length=32, allow_blank=True, allow_null=True)
@@ -80,6 +92,9 @@ class CreateOrEditProblemSerializer(serializers.Serializer):
     share_submission = serializers.BooleanField()
     extra_config = ProblemExtraConfigSerializer()
     extra_score = ProblemExtraScoreSerializer()
+    extra = serializers.BooleanField()
+    test_mode = serializers.IntegerField(min_value=0, max_value=2)
+    func_config = ProblemFuncConfigSerializer()
 
 
 class CreateProblemSerializer(CreateOrEditProblemSerializer):
