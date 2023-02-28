@@ -60,11 +60,25 @@ class ProblemFuncParameterSerializer(serializers.Serializer):
     arr = serializers.BooleanField()
 
 class ProblemFuncConfigSerializer(serializers.Serializer):
-    name = serializers.CharField()
-    return_type = serializers.CharField()
+    name = serializers.CharField(allow_blank=True, allow_null=True)
+    return_type = serializers.CharField(allow_blank=True, allow_null=True)
     parameter = serializers.ListField(child=ProblemFuncParameterSerializer(), allow_empty=True)
-    init = serializers.CharField()
+    init = serializers.CharField(allow_blank=True, allow_null=True)
 
+class ProblemSegmentConditionSerializer(serializers.Serializer):
+    parameter = serializers.CharField(allow_blank=True, allow_null=True)
+    relation = serializers.CharField(allow_blank=True, allow_null=True)
+    value = serializers.CharField(allow_blank=True, allow_null=True)
+    
+class ProblemSegmentConfigSerializer(serializers.Serializer):
+    code = serializers.CharField(allow_blank=True, allow_null=True)
+    judge_code = serializers.CharField(allow_blank=True, allow_null=True)
+
+class ProblemJudgeConfigSerializer(serializers.Serializer):
+    judge_mode = serializers.IntegerField(min_value=0, max_value=5)
+    func_config = ProblemFuncConfigSerializer(required=False)
+    segment_config = ProblemSegmentConfigSerializer(required=False)
+    
 class CreateOrEditProblemSerializer(serializers.Serializer):
     _id = serializers.CharField(max_length=32, allow_blank=True, allow_null=True)
     title = serializers.CharField(max_length=1024)
@@ -93,8 +107,7 @@ class CreateOrEditProblemSerializer(serializers.Serializer):
     extra_config = ProblemExtraConfigSerializer()
     extra_score = ProblemExtraScoreSerializer()
     extra = serializers.BooleanField()
-    test_mode = serializers.IntegerField(min_value=0, max_value=2)
-    func_config = ProblemFuncConfigSerializer()
+    judge_config = ProblemJudgeConfigSerializer()
 
 
 class CreateProblemSerializer(CreateOrEditProblemSerializer):

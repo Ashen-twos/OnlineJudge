@@ -40,3 +40,14 @@ class SPJLanguageNameMultiChoiceField(serializers.ListField):
             if item not in SysOptions.spj_language_names:
                 raise InvalidLanguage(item)
         return data
+
+class JudgeConditionSerializer(serializers.Serializer):
+    parameter = serializers.CharField()
+    data_type = serializers.CharField()
+    relation = serializers.CharField()
+    value = serializers.CharField()
+    value_type = serializers.CharField()
+
+class CreateJudgeCodeSerializer(serializers.Serializer):
+    condition = serializers.ListField(child=JudgeConditionSerializer(), allow_empty=False)
+

@@ -1,3 +1,5 @@
+import re
+
 code_template = """#include <bits/stdc++.h>
 
 {{code}}
@@ -14,6 +16,22 @@ func_template = """{return_type} {name}({parameter})
     //Type Your Code Here
 }}
 """
+
+judge_template = """if(judge({parameter})!=0)
+{{{{
+    exit(114);
+}}}}
+"""
+
+if_template = """\tif({para} {relation} {value}){{
+\t\treturn -1;
+\t}}
+"""
+str_template = """\tif(strcmp({para},{value}) {relation} 0){{
+\t\treturn -1;
+\t}}
+"""
+
 placeholder = {
     "int": "d",
     "short": "hd",
@@ -32,6 +50,23 @@ placeholder = {
     "char*": "s"
 }
 
+relationship = {
+    "=": "!=",
+    "!=": "==",
+    ">": "<=",
+    ">=": "<",
+    "<": ">=",
+    "<=": ">"
+}
+
+judge_template = """int judge({para})
+{{
+{iiff}
+\treturn 0;
+}}
+"""
+
+data_type = ['int', 'short', 'long', 'float', 'double', 'char', 'int*', 'short*', 'long*', 'float*', 'double*', 'char*']
 
 def CreateFunctionTemplate(name, return_type, parameter_list=None):
     
@@ -76,33 +111,96 @@ def CreateCodeTemplate(init, name, return_type, parameter_list):
         output = func + ";\n"
     return code_template.format(init=init, output=output)
 
+def ResolveJudge(judge_code):
+    ret = []
+    if judge_code.split()[0] not in ['int','bool']:
+        return False
+    pos = 0 
+    for pos in range(len(judge_code)):
+        if judge_code[pos] == '(':
+            judge_code = judge_code[pos+1:]
+            break
+    pos = 0 
+    for pos in range(len(judge_code)):
+        if judge_code[pos] == ')':
+            judge_code = judge_code[:pos]
+            break
+    words = re.split("[, ]",judge_code)
+    for str in words:
+        if str not in data_type and str != '':
+            if str[-2:] == "[]":
+                ret.append(str[:-2])
+            else:
+                ret.append(str)
+    return ret
 
-parameter_list = [
+
+def MergeSegment(code, judge_code):
+    if code.find("$JUDGE$") == -1 or code.find("$CODE$") == -1:
+        return False
+    
+    code = "#include <bits/stdc++.h>\n" + judge_code + code
+    code = code.replace("{", "{{")
+    code = code.replace("}", "}}")
+    
+    parameter = ""
+    parameter_list = ResolveJudge(judge_code)
+    for cond in parameter_list:
+        if parameter == "":
+            parameter = cond
+        else:
+            parameter += ", " + cond
+    
+    code = code.replace("$JUDGE$", judge_template.format(parameter=parameter) , 1)
+    code = code.replace("$CODE$", "{code}", 1)
+    return code
+
+def CreateJudgeCode(condition):
+    if_code = ""
+    parameter_list = []
+    used = {}
+    for cond in condition:
+        if not used.get(cond["parameter"]):
+            if cond["data_type"] == "char[]":
+                parameter_list.append(cond["data_type"][:-2] + " " + cond["parameter"] + "[]")
+            else:
+                parameter_list.append(cond["data_type"] + " " + cond["parameter"])
+            used[cond["parameter"]] = True
+        if cond["value_type"] != "const" and not used.get(cond["value"]):
+            parameter_list.append(cond["value_type"] + " " + cond["value"])
+            used[cond["value"]] = True
+        if cond["data_type"] == "char[]":
+            if cond["value_type"] != "const":
+                if_code += str_template.format(para=cond["parameter"], relation=relationship[cond["relation"]], value=cond["value"])
+            else:
+                if_code += str_template.format(para=cond["parameter"], relation=relationship[cond["relation"]], value="\"" + cond["value"]+ "\"")
+        else:    
+            if_code += if_template.format(para=cond["parameter"], relation=relationship[cond["relation"]], value=cond["value"])
+    return judge_template.format(para=', '.join(parameter_list), iiff=if_code)
+
+condi = [
     {
-        "id": 5,
-        "name": "a",
-        "type": "int",
-        "ptr": False,
-        "arr": 0
+        "parameter": "a",
+        "data_type": "int",
+        "relation": "=",
+        "value": "b",
+        "value_type": "int"
     },
     {
-        "id": 3,
-        "name": "b",
-        "type": "int",
-        "ptr": False,
-        "arr": 1024
+        "parameter": "a",
+        "data_type": "int",
+        "relation": "=",
+        "value": "114514",
+        "value_type": "const"
     },
     {
-        "id": 2,
-        "name": "c",
-        "type": "double",
-        "ptr": True,
-        "arr": 1024
+        "parameter": "c",
+        "data_type": "char[]",
+        "relation": "=",
+        "value": "asdasd",
+        "value_type": "const"
     }
 ]
 
-# print(CreateFunctionTemplate(name="sort", parameter_list=parameter_list, return_type="void"))
-# print(CreateCodeTemplate(code="int add()", init="int a,b,c;", name="add", return_type="int*", parameter_list=parameter_list))
-
-#temp = CreateCodeTemplate(init="int a,b,c;\nif(a>b){\na=b;\n}", name="add", return_type="int*", parameter_list=parameter_list)
-#print(temp.format(code = "casdasdasda"))  
+# print(CreateJudgeCode(condi))
+    

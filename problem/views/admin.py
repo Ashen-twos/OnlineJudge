@@ -21,7 +21,7 @@ from utils.api import APIView, CSRFExemptAPIView, validate_serializer, APIError
 from utils.constants import Difficulty
 from utils.shortcuts import rand_str, natural_sort_key
 from utils.tasks import delete_files
-from utils.test import CreateFunctionTemplate, CreateCodeTemplate
+from utils.test import CreateFunctionTemplate, CreateCodeTemplate, MergeSegment
 from ..models import Problem, ProblemRuleType, ProblemTag
 from ..serializers import (CreateContestProblemSerializer, CompileSPJSerializer,
                            CreateProblemSerializer, EditProblemSerializer, EditContestProblemSerializer,
@@ -217,17 +217,22 @@ class ProblemAPI(ProblemBase):
         data["created_by"] = request.user
         
         # 函数模式
-        if data["test_mode"] == 1:
-            data["func_config"]["func_template"] = CreateFunctionTemplate(
-                name = data["func_config"]["name"],
-                return_type = data["func_config"]["return_type"],
-                parameter_list = data["func_config"]["parameter"]
+        if data["judge_config"]["judge_mode"] == 1:
+            data["judge_config"]["func_config"]["func_template"] = CreateFunctionTemplate(
+                name = data["judge_config"]["func_config"]["name"],
+                return_type = data["judge_config"]["func_config"]["return_type"],
+                parameter_list = data["judge_config"]["func_config"]["parameter"]
             )
-            data["func_config"]["code_template"] = CreateCodeTemplate(
-                init = data["func_config"]["init"],
-                name = data["func_config"]["name"],
-                return_type = data["func_config"]["return_type"],
-                parameter_list = data["func_config"]["parameter"]
+            data["judge_config"]["code_template"] = CreateCodeTemplate(
+                init = data["judge_config"]["func_config"]["init"],
+                name = data["judge_config"]["func_config"]["name"],
+                return_type = data["judge_config"]["func_config"]["return_type"],
+                parameter_list = data["judge_config"]["func_config"]["parameter"]
+            )
+        elif data["judge_config"]["judge_mode"] == 2:
+            data["judge_config"]["code_template"] = MergeSegment(
+                code = data["judge_config"]["segment_config"]["code"],
+                judge_code = data["judge_config"]["segment_config"]["judge_code"]
             )
         problem = Problem.objects.create(**data)
 
@@ -287,6 +292,26 @@ class ProblemAPI(ProblemBase):
         error_info = self.common_checks(request)
         if error_info:
             return self.error(error_info)
+        
+        # 函数模式
+        if data["judge_config"]["judge_mode"] == 1:
+            data["judge_config"]["func_config"]["func_template"] = CreateFunctionTemplate(
+                name = data["judge_config"]["func_config"]["name"],
+                return_type = data["judge_config"]["func_config"]["return_type"],
+                parameter_list = data["judge_config"]["func_config"]["parameter"]
+            )
+            data["judge_config"]["code_template"] = CreateCodeTemplate(
+                init = data["judge_config"]["func_config"]["init"],
+                name = data["judge_config"]["func_config"]["name"],
+                return_type = data["judge_config"]["func_config"]["return_type"],
+                parameter_list = data["judge_config"]["func_config"]["parameter"]
+            )
+        elif data["judge_config"]["judge_mode"] == 2:
+            data["judge_config"]["code_template"] = MergeSegment(
+                code = data["judge_config"]["segment_config"]["code"],
+                judge_code = data["judge_config"]["segment_config"]["judge_code"]
+            )
+        
         # todo check filename and score info
         tags = data.pop("tags")
         data["languages"] = list(data["languages"])

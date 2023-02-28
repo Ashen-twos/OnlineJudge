@@ -73,17 +73,28 @@ class SubmissionAPI(APIView):
         if data["language"] not in problem.languages:
             return self.error(f"{data['language']} is now allowed in the problem")
         
-        if problem.test_mode == 1:
+        if problem.judge_config["judge_mode"] == 1:
             submission = Submission.objects.create(user_id=request.user.id,
                                                username=request.user.username,
                                                language="C++",
-                                               code=problem.func_config["code_template"].format(code=data["code"]),
+                                               code=problem.judge_config["code_template"].format(code=data["code"]),
                                                problem_id=problem.id,
                                                raw_code = data["code"],
                                                ip=request.session["ip"],
                                                contest_id=data.get("contest_id"),
                                                extra_option=data.get("extra_option"))
         
+        elif problem.judge_config["judge_mode"] == 2:
+            submission = Submission.objects.create(user_id=request.user.id,
+                                               username=request.user.username,
+                                               language="C++",
+                                               code=problem.judge_config["code_template"].format(code=data["code"]),
+                                               problem_id=problem.id,
+                                               raw_code = data["code"],
+                                               ip=request.session["ip"],
+                                               contest_id=data.get("contest_id"),
+                                               extra_option=data.get("extra_option"))
+            
         else:
             submission = Submission.objects.create(user_id=request.user.id,
                                                 username=request.user.username,

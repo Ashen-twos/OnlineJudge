@@ -166,6 +166,8 @@ class JudgeDispatcher(DispatcherBase):
         }
         if self.submission.extra_option:
             data["extra_config"] = self.problem.extra_config
+        if self.submission.raw_code:
+            data["raw_code"] = self.submission.raw_code
         with ChooseJudgeServer() as server:
             if not server:
                 data = {"submission_id": self.submission.id, "problem_id": self.problem.id}

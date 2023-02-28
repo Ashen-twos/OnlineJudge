@@ -2,7 +2,9 @@ import os
 from django.conf import settings
 from account.serializers import ImageUploadForm, FileUploadForm
 from utils.shortcuts import rand_str
-from utils.api import CSRFExemptAPIView
+from utils.api import CSRFExemptAPIView, validate_serializer
+from utils.test import CreateJudgeCode
+from utils.serializers import CreateJudgeCodeSerializer
 import logging
 
 logger = logging.getLogger(__name__)
@@ -73,3 +75,11 @@ class SimditorFileUploadAPIView(CSRFExemptAPIView):
             "msg": "Success",
             "file_path": f"{settings.UPLOAD_PREFIX}/{file_name}",
             "file_name": file.name})
+        
+class CreateJudgeCodeAPIView(CSRFExemptAPIView):
+    @validate_serializer(CreateJudgeCodeSerializer)
+    def post(self, request):
+        return self.response({
+            "error": None,
+            "data": CreateJudgeCode(request.data["condition"])
+        })
