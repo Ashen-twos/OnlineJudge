@@ -47,10 +47,12 @@ class ProblemIOModeSerializer(serializers.Serializer):
 class ProblemExtraConfigSerializer(serializers.Serializer):
     format = serializers.DictField()
     function = serializers.DictField()
+    memory = serializers.DictField()
     
 class ProblemExtraScoreSerializer(serializers.Serializer):
     format = serializers.IntegerField(min_value=1, max_value=10)
     function = serializers.IntegerField(min_value=1, max_value=10)
+    memory = serializers.IntegerField(min_value=1, max_value=10)
 
 class ProblemFuncParameterSerializer(serializers.Serializer):
     id = serializers.IntegerField()

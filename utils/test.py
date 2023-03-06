@@ -59,7 +59,7 @@ relationship = {
     "<=": ">"
 }
 
-judge_template = """int judge({para})
+judge_template_create = """int judge({para})
 {{
 {iiff}
 \treturn 0;
@@ -176,7 +176,7 @@ def CreateJudgeCode(condition):
                 if_code += str_template.format(para=cond["parameter"], relation=relationship[cond["relation"]], value="\"" + cond["value"]+ "\"")
         else:    
             if_code += if_template.format(para=cond["parameter"], relation=relationship[cond["relation"]], value=cond["value"])
-    return judge_template.format(para=', '.join(parameter_list), iiff=if_code)
+    return judge_template_create.format(para=', '.join(parameter_list), iiff=if_code)
 
 condi = [
     {
