@@ -3,8 +3,8 @@ from django.conf import settings
 from account.serializers import ImageUploadForm, FileUploadForm
 from utils.shortcuts import rand_str
 from utils.api import CSRFExemptAPIView, validate_serializer
-from utils.test import CreateJudgeCode
-from utils.serializers import CreateJudgeCodeSerializer
+from utils.test import CreateJudgeCode, CreateFunctionTemplate
+from utils.serializers import CreateJudgeCodeSerializer, FunctinoPreviewSerializer
 import logging
 
 logger = logging.getLogger(__name__)
@@ -83,3 +83,11 @@ class CreateJudgeCodeAPIView(CSRFExemptAPIView):
             "error": None,
             "data": CreateJudgeCode(request.data["condition"])
         })
+class FunctinoPreviewAPIView(CSRFExemptAPIView):
+    @validate_serializer(FunctinoPreviewSerializer)
+    def post(self, request):
+        return self.response({
+            "error": None,
+            "data": CreateFunctionTemplate(name=request.data["name"], return_type=request.data["return_type"], parameter_list=request.data["parameter"])
+        })        
+        

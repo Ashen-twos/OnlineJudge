@@ -51,3 +51,14 @@ class JudgeConditionSerializer(serializers.Serializer):
 class CreateJudgeCodeSerializer(serializers.Serializer):
     condition = serializers.ListField(child=JudgeConditionSerializer(), allow_empty=False)
 
+class FuncParameterSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    type = serializers.CharField()
+    ptr = serializers.BooleanField()
+    arr = serializers.BooleanField()
+
+class FunctinoPreviewSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    return_type = serializers.CharField()
+    parameter = serializers.ListField(child=FuncParameterSerializer(), allow_empty=True)
