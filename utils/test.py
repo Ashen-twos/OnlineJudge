@@ -178,6 +178,31 @@ def CreateJudgeCode(condition):
             if_code += if_template.format(para=cond["parameter"], relation=relationship[cond["relation"]], value=cond["value"])
     return judge_template_create.format(para=', '.join(parameter_list), iiff=if_code)
 
+def GetPassSum(name, config):
+    if name == "format":
+        if config["comma_space"]:
+            return 4
+        else:
+            return 3
+    elif name == "function":
+        if config["disableIO"]:
+            return 4
+        else:
+            return 3
+    elif name == "memory":
+        if config["check_ptr_free"]:
+            return 2
+        else:
+            return 1
+    elif name == "style":
+        if config["single_name"]:
+            return 5
+        else:
+            return 4
+    else:
+        return 2
+            
+
 condi = [
     {
         "parameter": "a",

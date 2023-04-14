@@ -16,6 +16,7 @@ from problem.utils import parse_problem_template
 from submission.models import JudgeStatus, Submission
 from utils.cache import cache
 from utils.constants import CacheKey
+from utils.test import GetPassSum
 
 logger = logging.getLogger(__name__)
 
@@ -124,11 +125,16 @@ class JudgeDispatcher(DispatcherBase):
         #额外分
         try:
             for i in range(len(resp_data["extra"])):
-                if resp_data["extra"][i]["result"] == JudgeStatus.ACCEPTED:
-                    resp_data["extra"][i]["score"] = self.problem.extra_score[resp_data["extra"][i]["name"]]
+                if self.problem.extra_config[resp_data["extra"][i]["name"]]["score_type"] == 1:
+                    psum = GetPassSum(resp_data["extra"][i]["name"],self.problem.extra_config[resp_data["extra"][i]["name"]])
+                    resp_data["extra"][i]["score"] = round(resp_data["extra"][i]["pass"] * self.problem.extra_score[resp_data["extra"][i]["name"]] / psum)
                     score += resp_data["extra"][i]["score"]
                 else:
-                    resp_data["extra"][i]["score"] = 0
+                    if resp_data["extra"][i]["result"] == JudgeStatus.ACCEPTED:
+                        resp_data["extra"][i]["score"] = self.problem.extra_score[resp_data["extra"][i]["name"]]
+                        score += resp_data["extra"][i]["score"]
+                    else:
+                        resp_data["extra"][i]["score"] = 0
         except IndexError:
             logger.error(f"Index Error raised when summing up the score in problem {self.problem.id}")
             self.submission.statistic_info["score"] = 0
